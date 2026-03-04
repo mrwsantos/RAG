@@ -135,7 +135,7 @@ export default function ChatInterface() {
   return (
     <div
       style={{ fontFamily: "'IBM Plex Mono', monospace" }}
-      className="flex flex-col h-screen bg-[#F5F3F2] text-zinc-100"
+      className="flex flex-col h-screen bg-[#F5F3F2] text-zinc-100 w-full max-w-[700px] mx-auto rounded-2xl border border-zinc-300 shadow-lg"
       onDragOver={e => { e.preventDefault(); setIsDragging(true); }}
       onDragLeave={() => setIsDragging(false)}
       onDrop={handleDrop}
@@ -167,7 +167,7 @@ export default function ChatInterface() {
         </div> */}
 
         {/* Upload button */}
-        <div className="flex items-center gap-3">
+        {/* <div className="flex items-center gap-3">
           {uploadStatus && (
             <span className="text-xs text-emerald-400">{uploadStatus}</span>
           )}
@@ -188,7 +188,7 @@ export default function ChatInterface() {
             className="hidden"
             onChange={e => uploadFiles(e.target.files)}
           />
-        </div>
+        </div> */}
       </header>
 
       {/* Drag overlay */}
