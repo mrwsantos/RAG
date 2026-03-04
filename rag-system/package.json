@@ -1,0 +1,41 @@
+{
+  "name": "rag-system",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint"
+  },
+  "dependencies": {
+    "next": "16.1.6",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+
+    "@pinecone-database/pinecone": "^3.0.3",
+
+    "langchain": "^0.3.20",
+    "@langchain/core": "^0.3.40",
+    "@langchain/openai": "^0.4.4",
+    "@langchain/anthropic": "^0.3.14",
+    "@langchain/community": "^0.3.36",
+    "@langchain/pinecone": "^0.2.0",
+
+    "langsmith": "^0.2.12",
+
+    "pdf-parse": "^1.1.1",
+    "mammoth": "^1.8.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "@types/pdf-parse": "^1.1.4",
+    "eslint": "^9",
+    "eslint-config-next": "16.1.6",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  }
+}
