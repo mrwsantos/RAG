@@ -29,7 +29,7 @@ export default function ChatInterface() {
   const [uploadStatus, setUploadStatus] = useState("");
   const [exporting, setExporting] = useState(false);
   const [ingestingSource, setIngestingSource] = useState(false);
-  const [isDragging, setIsDragging] = useState(false);
+  // const [isDragging, setIsDragging] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -157,15 +157,15 @@ export default function ChatInterface() {
 
   async function ingestSource() {
     setIngestingSource(true);
-    setUploadStatus('Ingesting /files/source...');
+    setUploadStatus("Ingesting /files/source...");
     try {
-      const res = await fetch('/api/ingest-source', { method: 'POST' });
+      const res = await fetch("/api/ingest-source", { method: "POST" });
       const data = await res.json();
-      setUploadStatus(data.message || 'Done!');
-      setTimeout(() => setUploadStatus(''), 5000);
+      setUploadStatus(data.message || "Done!");
+      setTimeout(() => setUploadStatus(""), 5000);
     } catch {
-      setUploadStatus('Error ingesting source folder.');
-      setTimeout(() => setUploadStatus(''), 5000);
+      setUploadStatus("Error ingesting source folder.");
+      setTimeout(() => setUploadStatus(""), 5000);
     } finally {
       setIngestingSource(false);
     }
@@ -174,17 +174,17 @@ export default function ChatInterface() {
   async function exportChunks() {
     setExporting(true);
     try {
-      const res = await fetch('/api/export');
-      if (!res.ok) throw new Error('Export failed');
+      const res = await fetch("/api/export");
+      if (!res.ok) throw new Error("Export failed");
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
+      const a = document.createElement("a");
       a.href = url;
       a.download = `pinecone-chunks-${new Date().toISOString().slice(0, 10)}.jsonl`;
       a.click();
       URL.revokeObjectURL(url);
     } catch {
-      alert('Error exporting chunks from Pinecone.');
+      alert("Error exporting chunks from Pinecone.");
     } finally {
       setExporting(false);
     }
@@ -197,61 +197,38 @@ export default function ChatInterface() {
     }
   }
 
-  function handleDrop(e: React.DragEvent) {
-    e.preventDefault();
-    setIsDragging(false);
-    uploadFiles(e.dataTransfer.files);
-  }
+  // function handleDrop(e: React.DragEvent) {
+  //   e.preventDefault();
+  //   setIsDragging(false);
+  //   uploadFiles(e.dataTransfer.files);
+  // }
 
   return (
-    <div
-      style={{ fontFamily: "'IBM Plex Mono', monospace" }}
-      className="my-10 flex flex-col  bg-[#F5F3F2] text-zinc-100 w-full max-w-[700px] mx-auto rounded-2xl"
-      onDragOver={(e) => {
-        e.preventDefault();
-        setIsDragging(true);
-      }}
-      onDragLeave={() => setIsDragging(false)}
-      onDrop={handleDrop}
-    >
-      {/* Header */}
-      <header className="border-b border-zinc-300 px-6 py-4 flex items-center justify-center gap-4">
-        <div className="flex items-center gap-3">
-          {/* <div className="w-4 h-4 rounded-full bg-emerald-400 animate-pulse" /> */}
-          <img
-            src="https://linkki.ai/wp-content/uploads/2025/11/Linkki-Brain-Illustration-1-1.gif"
-            alt="LINKKI RAG Assistant"
-            className="w-16 h-16 mx-auto"
-          />
-          <span className="text-lg text-centerfont-semibold tracking-widest text-[#273D4F] uppercase font-bold">
-            LINKKI RAG
-          </span>
-        </div>
+    <div className="flex flex-col gap-20 w-full max-w-[700px]">
+      {/* Provider toggle */}
+      {process.env.NEXT_PUBLIC_APP_ENVIRONMENT === "development" && (
+        <div className="flex items-center justify-center gap-10 w-full mb-10">
+          <div className="flex items-center gap-1 bg-[#273D4F] rounded-lg  h-10 px-2 border mr-30">
+            {(["openai", "anthropic"] as Provider[]).map((p) => (
+              <button
+                key={p}
+                onClick={() => setProvider(p)}
+                className={`px-3 py-1 rounded text-xs font-medium transition-all cursor-pointer ${
+                  provider === p
+                    ? "bg-[#CFF5D3] text-zinc-950"
+                    : "text-white hover:text-[#cff5d3]"
+                }`}
+              >
+                {p === "openai" ? "ChatGPT" : "Claude"}
+              </button>
+            ))}
+          </div>
 
-        {/* Provider toggle */}
-        {process.env.NEXT_PUBLIC_APP_ENVIRONMENT === "development" && (
-          <>
-            <div className="flex items-center gap-1 bg-[#273D4F] rounded-lg  h-10 px-2 border ml-auto">
-              {(["openai", "anthropic"] as Provider[]).map((p) => (
-                <button
-                  key={p}
-                  onClick={() => setProvider(p)}
-                  className={`px-3 py-1 rounded text-xs font-medium transition-all cursor-pointer ${
-                    provider === p
-                      ? "bg-[#CFF5D3] text-zinc-950"
-                      : "text-white hover:text-[#cff5d3]"
-                  }`}
-                >
-                  {p === "openai" ? "ChatGPT" : "Claude"}
-                </button>
-              ))}
-            </div>
-
-            <div className="flex items-center gap-3">
-              {uploadStatus && (
-                <span className="text-xs text-emerald-400">{uploadStatus}</span>
-              )}
-              {/* <button
+          <div className="flex items-center gap-3">
+            {uploadStatus && (
+              <span className="text-xs text-emerald-400">{uploadStatus}</span>
+            )}
+            {/* <button
                 onClick={() => fileInputRef.current?.click()}
                 className="flex items-center gap-2 h-10 px-3 text-xs bg-white rounded-lg text-zinc-700 hover:border-emerald-500 hover:text-emerald-400 transition-all cursor-pointer"
               >
@@ -270,51 +247,146 @@ export default function ChatInterface() {
                 </svg>
                 Upload docs
               </button> */}
-              <button
-                onClick={ingestSource}
-                disabled={ingestingSource}
-                title="Ingest all files from /files/source"
-                className="flex items-center gap-2 h-10 px-3 text-xs bg-white rounded-lg text-zinc-700 hover:text-emerald-400 transition-all cursor-pointer disabled:opacity-50"
+            <button
+              onClick={ingestSource}
+              disabled={ingestingSource}
+              title="Ingest all files from /files/source"
+              className="flex items-center gap-2 h-10 px-3 text-xs bg-white rounded-lg text-zinc-700 hover:text-emerald-400 transition-all cursor-pointer disabled:opacity-50"
+            >
+              {ingestingSource ? (
+                <div className="w-3.5 h-3.5 border-2 border-zinc-400 border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <svg
+                  className="w-3.5 h-3.5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 7v10c0 2 1 3 3 3h10c2 0 3-1 3-3V7M9 5h6M12 2v10m-3-3l3 3 3-3"
+                  />
+                </svg>
+              )}
+              Sync /source
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              accept=".pdf,.docx,.doc,.txt,.md"
+              className="hidden"
+              onChange={(e) => uploadFiles(e.target.files)}
+            />
+            <button
+              onClick={exportChunks}
+              disabled={exporting}
+              title="Export Pinecone chunks"
+              className="flex items-center gap-2 h-10 px-3 text-xs bg-white rounded-lg text-zinc-700 hover:text-emerald-400 transition-all cursor-pointer disabled:opacity-50"
+            >
+              {exporting ? (
+                <div className="w-3.5 h-3.5 border-2 border-zinc-400 border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <svg
+                  className="w-3.5 h-3.5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                  />
+                </svg>
+              )}
+              Chunks
+            </button>
+            <button
+              onClick={async () => {
+                if (!confirm("Clear ALL Pinecone vectors and reset manifest?"))
+                  return;
+                const res = await fetch("/api/admin/clear-index", {
+                  method: "POST",
+                });
+                const data = await res.json();
+                setUploadStatus(data.message || data.error || "Done");
+                setTimeout(() => setUploadStatus(""), 4000);
+              }}
+              title="Clear Pinecone index + reset manifest"
+              className="flex items-center gap-2 h-10 px-3 text-xs bg-red-900/60 rounded-lg text-red-300 hover:text-red-100 transition-all cursor-pointer"
+            >
+              <svg
+                className="w-3.5 h-3.5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
               >
-                {ingestingSource ? (
-                  <div className="w-3.5 h-3.5 border-2 border-zinc-400 border-t-transparent rounded-full animate-spin" />
-                ) : (
-                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2 1 3 3 3h10c2 0 3-1 3-3V7M9 5h6M12 2v10m-3-3l3 3 3-3" />
-                  </svg>
-                )}
-                Sync /source
-              </button>
-              <input
-                ref={fileInputRef}
-                type="file"
-                multiple
-                accept=".pdf,.docx,.doc,.txt,.md"
-                className="hidden"
-                onChange={(e) => uploadFiles(e.target.files)}
-              />
-              <button
-                onClick={exportChunks}
-                disabled={exporting}
-                title="Export Pinecone chunks"
-                className="flex items-center gap-2 h-10 px-3 text-xs bg-white rounded-lg text-zinc-700 hover:text-emerald-400 transition-all cursor-pointer disabled:opacity-50"
-              >
-                {exporting ? (
-                  <div className="w-3.5 h-3.5 border-2 border-zinc-400 border-t-transparent rounded-full animate-spin" />
-                ) : (
-                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                  </svg>
-                )}
-                Chunks
-              </button>
-            </div>
-          </>
-        )}
-      </header>
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                />
+              </svg>
+              Clear index
+            </button>
+          </div>
+        </div>
+      )}
+      <div
+        style={{ fontFamily: "'IBM Plex Mono', monospace" }}
+        className="flex flex-col  bg-[#F5F3F2] text-zinc-100 w-full max-w-[700px] mx-auto rounded-2xl"
+        // onDragOver={(e) => {
+        //   e.preventDefault();
+        //   setIsDragging(true);
+        // }}
+        // onDragLeave={() => setIsDragging(false)}
+        // onDrop={handleDrop}
+      >
+        {/* ACTIONS */}
 
-      {/* Drag overlay */}
-      {isDragging && (
+        {/* Header */}
+        <header className="border-b border-zinc-300 px-6 py-4 flex items-center justify-center gap-4">
+          <div className="flex items-center gap-3">
+            {/* <div className="w-4 h-4 rounded-full bg-emerald-400 animate-pulse" /> */}
+            <img
+              src="https://linkki.ai/wp-content/uploads/2025/11/Linkki-Brain-Illustration-1-1.gif"
+              alt="LINKKI RAG Assistant"
+              className="w-16 h-16 mx-auto"
+            />
+            <span className="text-lg text-centerfont-semibold tracking-widest text-[#273D4F] uppercase font-bold">
+              LINKKI RAG
+            </span>
+          </div>
+
+          {/* Provider toggle */}
+          {/* {process.env.NEXT_PUBLIC_APP_ENVIRONMENT === "development" && (
+          <>
+            <div className="flex items-center gap-1 bg-[#273D4F] rounded-lg  h-10 px-2 border ml-auto">
+              {(["openai", "anthropic"] as Provider[]).map((p) => (
+                <button
+                  key={p}
+                  onClick={() => setProvider(p)}
+                  className={`px-3 py-1 rounded text-xs font-medium transition-all cursor-pointer ${
+                    provider === p
+                      ? "bg-[#CFF5D3] text-zinc-950"
+                      : "text-white hover:text-[#cff5d3]"
+                  }`}
+                >
+                  {p === "openai" ? "ChatGPT" : "Claude"}
+                </button>
+              ))}
+            </div>          
+          </>
+        )} */}
+        </header>
+
+        {/* Drag overlay */}
+        {/* {isDragging && (
         <div className="fixed inset-0 z-50 bg-zinc-950/90 flex items-center justify-center border-2 border-dashed border-emerald-500 m-4 rounded-2xl">
           <div className="text-center">
             <div className="text-4xl mb-3">📄</div>
@@ -322,21 +394,21 @@ export default function ChatInterface() {
             <p className="text-zinc-500 text-sm mt-1">MD,PDF, DOCX or TXT</p>
           </div>
         </div>
-      )}
+      )} */}
 
-      {/* Messages */}
-      <main className="flex-1 overflow-y-auto px-4 py-6 min-h-[70vh] max-h-[70vh] overflow-auto">
-        <div className="max-w-3xl mx-auto space-y-6">
-          {messages.length === 0 && (
-            <div className="text-center py-20">
-              <h2 className="text-[#273D4F] text-lg font-semibold mb-2">
-                What can I do for you today?
-              </h2>
-              {/* <p className="text-zinc-600 text-sm">
+        {/* Messages */}
+        <main className="flex-1 overflow-y-auto px-4 py-6 min-h-[70vh] max-h-[70vh] overflow-auto">
+          <div className="max-w-3xl mx-auto space-y-6">
+            {messages.length === 0 && (
+              <div className="text-center py-20">
+                <h2 className="text-[#273D4F] text-lg font-semibold mb-2">
+                  What can I do for you today?
+                </h2>
+                {/* <p className="text-zinc-600 text-sm">
                 Upload PDFs or DOCXs and start searching.
               </p> */}
-              <div className="mt-6 flex flex-wrap gap-2 justify-center w-full">
-                {/* {[
+                <div className="mt-6 flex flex-wrap gap-2 justify-center w-full">
+                  {/* {[
                   'What is the vacation policy?',
                   'How does the purchase process work?',
                   'What are the benefits?',
@@ -349,116 +421,116 @@ export default function ChatInterface() {
                     {q}
                   </button>
                 ))} */}
+                </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {messages.map((msg) => (
-            <div
-              key={msg.id}
-              className={`flex gap-3 ${msg.role === "user" ? "justify-end" : "justify-start"}`}
-            >
-              {msg.role === "assistant" && (
-                <div className="w-7 h-7 rounded bg-[#cff5d3] text-[#273D4F] flex items-center justify-center flex-shrink-0 mt-0.5">
-                  <span className="text-xs">AI</span>
-                </div>
-              )}
-
+            {messages.map((msg) => (
               <div
-                className={`max-w-[85%] ${msg.role === "user" ? "order-first" : ""}`}
+                key={msg.id}
+                className={`flex gap-3 ${msg.role === "user" ? "justify-end" : "justify-start"}`}
               >
-                <div
-                  className={`rounded-2xl  text-sm leading-relaxed ${
-                    msg.role === "user"
-                      ? "bg-[#273D4F] text-[#CFF5D3] rounded-tr-sm whitespace-pre-wrap px-4 py-3"
-                      : " text-zinc-800 rounded-tl-sm p-0"
-                  }`}
-                >
-                  {msg.role === "user" ? (
-                    msg.content
-                  ) : (
-                    <ReactMarkdown
-                      remarkPlugins={[remarkGfm]}
-                      components={{
-                        p: ({ children }) => (
-                          <p className="mb-2 last:mb-0">{children}</p>
-                        ),
-                        strong: ({ children }) => (
-                          <strong className="font-semibold text-zinc-900">
-                            {children}
-                          </strong>
-                        ),
-                        em: ({ children }) => (
-                          <em className="italic text-zinc-600">{children}</em>
-                        ),
-                        h1: ({ children }) => (
-                          <h1 className="text-base font-bold text-zinc-900 mb-2 mt-3 first:mt-0">
-                            {children}
-                          </h1>
-                        ),
-                        h2: ({ children }) => (
-                          <h2 className="text-sm font-bold text-zinc-900 mb-2 mt-3 first:mt-0">
-                            {children}
-                          </h2>
-                        ),
-                        h3: ({ children }) => (
-                          <h3 className="text-sm font-semibold text-zinc-800 mb-1 mt-2 first:mt-0">
-                            {children}
-                          </h3>
-                        ),
-                        ul: ({ children }) => (
-                          <ul className="list-disc list-inside space-y-1 mb-2 pl-2">
-                            {children}
-                          </ul>
-                        ),
-                        ol: ({ children }) => (
-                          <ol className="list-decimal list-inside space-y-1 mb-2 pl-2">
-                            {children}
-                          </ol>
-                        ),
-                        li: ({ children }) => (
-                          <li className="text-zinc-700">{children}</li>
-                        ),
-                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                        code: ({ inline, children }: any) =>
-                          inline ? (
-                            <code className="bg-zinc-100 text-emerald-700 px-1 py-0.5 rounded text-xs font-mono">
-                              {children}
-                            </code>
-                          ) : (
-                            <code className="block bg-zinc-100 text-emerald-700 px-3 py-2 rounded-lg text-xs font-mono my-2 overflow-x-auto whitespace-pre">
-                              {children}
-                            </code>
-                          ),
-                        pre: ({ children }) => <>{children}</>,
-                        blockquote: ({ children }) => (
-                          <blockquote className="border-l-2 border-emerald-500 pl-3 text-zinc-500 italic my-2">
-                            {children}
-                          </blockquote>
-                        ),
-                        a: ({ href, children }) => (
-                          <a
-                            href={href}
-                            className="text-emerald-600 underline hover:text-emerald-500"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                          >
-                            {children}
-                          </a>
-                        ),
-                        hr: () => <hr className="border-zinc-200 my-3" />,
-                      }}
-                    >
-                      {msg.content}
-                    </ReactMarkdown>
-                  )}
-                  {msg.streaming && (
-                    <span className="inline-block w-1.5 h-4 bg-emerald-400 ml-0.5 animate-pulse" />
-                  )}
-                </div>
+                {msg.role === "assistant" && (
+                  <div className="w-7 h-7 rounded bg-[#cff5d3] text-[#273D4F] flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <span className="text-xs">AI</span>
+                  </div>
+                )}
 
-                {/* Sources */}
-                {/* {msg.sources && msg.sources.length > 0 && (
+                <div
+                  className={`max-w-[85%] ${msg.role === "user" ? "order-first" : ""}`}
+                >
+                  <div
+                    className={`rounded-2xl  text-sm leading-relaxed ${
+                      msg.role === "user"
+                        ? "bg-[#273D4F] text-[#CFF5D3] rounded-tr-sm whitespace-pre-wrap px-4 py-3"
+                        : " text-zinc-800 rounded-tl-sm p-0"
+                    }`}
+                  >
+                    {msg.role === "user" ? (
+                      msg.content
+                    ) : (
+                      <ReactMarkdown
+                        remarkPlugins={[remarkGfm]}
+                        components={{
+                          p: ({ children }) => (
+                            <p className="mb-2 last:mb-0">{children}</p>
+                          ),
+                          strong: ({ children }) => (
+                            <strong className="font-semibold text-zinc-900">
+                              {children}
+                            </strong>
+                          ),
+                          em: ({ children }) => (
+                            <em className="italic text-zinc-600">{children}</em>
+                          ),
+                          h1: ({ children }) => (
+                            <h1 className="text-base font-bold text-zinc-900 mb-2 mt-3 first:mt-0">
+                              {children}
+                            </h1>
+                          ),
+                          h2: ({ children }) => (
+                            <h2 className="text-sm font-bold text-zinc-900 mb-2 mt-3 first:mt-0">
+                              {children}
+                            </h2>
+                          ),
+                          h3: ({ children }) => (
+                            <h3 className="text-sm font-semibold text-zinc-800 mb-1 mt-2 first:mt-0">
+                              {children}
+                            </h3>
+                          ),
+                          ul: ({ children }) => (
+                            <ul className="list-disc list-inside space-y-1 mb-2 pl-2">
+                              {children}
+                            </ul>
+                          ),
+                          ol: ({ children }) => (
+                            <ol className="list-decimal list-inside space-y-1 mb-2 pl-2">
+                              {children}
+                            </ol>
+                          ),
+                          li: ({ children }) => (
+                            <li className="text-zinc-700">{children}</li>
+                          ),
+                          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                          code: ({ inline, children }: any) =>
+                            inline ? (
+                              <code className="bg-zinc-100 text-emerald-700 px-1 py-0.5 rounded text-xs font-mono">
+                                {children}
+                              </code>
+                            ) : (
+                              <code className="block bg-zinc-100 text-emerald-700 px-3 py-2 rounded-lg text-xs font-mono my-2 overflow-x-auto whitespace-pre">
+                                {children}
+                              </code>
+                            ),
+                          pre: ({ children }) => <>{children}</>,
+                          blockquote: ({ children }) => (
+                            <blockquote className="border-l-2 border-emerald-500 pl-3 text-zinc-500 italic my-2">
+                              {children}
+                            </blockquote>
+                          ),
+                          a: ({ href, children }) => (
+                            <a
+                              href={href}
+                              className="text-emerald-600 underline hover:text-emerald-500"
+                              target="_blank"
+                              rel="noopener noreferrer"
+                            >
+                              {children}
+                            </a>
+                          ),
+                          hr: () => <hr className="border-zinc-200 my-3" />,
+                        }}
+                      >
+                        {msg.content}
+                      </ReactMarkdown>
+                    )}
+                    {msg.streaming && (
+                      <span className="inline-block w-1.5 h-4 bg-emerald-400 ml-0.5 animate-pulse" />
+                    )}
+                  </div>
+
+                  {/* Sources */}
+                  {/* {msg.sources && msg.sources.length > 0 && (
                   <div className="mt-2 space-y-1">
                     <p className="text-xs text-zinc-600 uppercase tracking-widest">Sources</p>
                     {msg.sources.map((src, i) => (
@@ -473,66 +545,67 @@ export default function ChatInterface() {
                     ))}
                   </div>
                 )} */}
-              </div>
-
-              {msg.role === "user" && (
-                <div className="w-9 h-7 rounded bg-[#273D4F] text-[#CFF5D3] flex items-center justify-center uppercase flex-shrink-0 mt-0.5">
-                  <span className="text-xs ">You</span>
                 </div>
-              )}
-            </div>
-          ))}
-          <div ref={bottomRef} />
-        </div>
-      </main>
 
-      {/* Input */}
-      <footer className="border-t border-zinc-300 px-4 py-4">
-        <div className="max-w-3xl mx-auto flex gap-3 items-end">
-          <textarea
-            ref={inputRef}
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="Ask me anything..."
-            rows={1}
-            disabled={loading}
-            className="flex-1 bg-white  rounded-xl px-4 py-3 text-sm text-zinc-800 placeholder-zinc-600 resize-none focus:outline-none focus:border-emerald-500 transition-colors disabled:opacity-50"
-            style={{ maxHeight: "120px", overflowY: "auto" }}
-            onInput={(e) => {
-              const t = e.target as HTMLTextAreaElement;
-              t.style.height = "auto";
-              t.style.height = Math.min(t.scrollHeight, 120) + "px";
-            }}
-          />
-          <button
-            onClick={sendMessage}
-            disabled={!input.trim() || loading}
-            className="w-10 h-10 bg-[#CFF5D3] text-[#273D4F] hover:bg-[#273D4F] hover:text-white disabled:opacity-30 disabled:cursor-not-allowed rounded-xl flex items-center justify-center transition-all flex-shrink-0 cursor-pointer"
-          >
-            {loading ? (
-              <div className="w-4 h-4 border-2 border-zinc-950 border-t-transparent rounded-full animate-spin" />
-            ) : (
-              <svg
-                className="w-4 h-4"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2.5}
-                  d="M5 12h14M12 5l7 7-7 7"
-                />
-              </svg>
-            )}
-          </button>
-        </div>
-        <p className="text-center text-zinc-700 text-xs mt-2">
-          Responses generated from internal documents
-        </p>
-      </footer>
+                {msg.role === "user" && (
+                  <div className="w-9 h-7 rounded bg-[#273D4F] text-[#CFF5D3] flex items-center justify-center uppercase flex-shrink-0 mt-0.5">
+                    <span className="text-xs ">You</span>
+                  </div>
+                )}
+              </div>
+            ))}
+            <div ref={bottomRef} />
+          </div>
+        </main>
+
+        {/* Input */}
+        <footer className="border-t border-zinc-300 px-4 py-4">
+          <div className="max-w-3xl mx-auto flex gap-3 items-end">
+            <textarea
+              ref={inputRef}
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="Ask me anything..."
+              rows={1}
+              disabled={loading}
+              className="flex-1 bg-white  rounded-xl px-4 py-3 text-sm text-zinc-800 placeholder-zinc-600 resize-none focus:outline-none focus:border-emerald-500 transition-colors disabled:opacity-50"
+              style={{ maxHeight: "120px", overflowY: "auto" }}
+              onInput={(e) => {
+                const t = e.target as HTMLTextAreaElement;
+                t.style.height = "auto";
+                t.style.height = Math.min(t.scrollHeight, 120) + "px";
+              }}
+            />
+            <button
+              onClick={sendMessage}
+              disabled={!input.trim() || loading}
+              className="w-10 h-10 bg-[#CFF5D3] text-[#273D4F] hover:bg-[#273D4F] hover:text-white disabled:opacity-30 disabled:cursor-not-allowed rounded-xl flex items-center justify-center transition-all flex-shrink-0 cursor-pointer"
+            >
+              {loading ? (
+                <div className="w-4 h-4 border-2 border-zinc-950 border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2.5}
+                    d="M5 12h14M12 5l7 7-7 7"
+                  />
+                </svg>
+              )}
+            </button>
+          </div>
+          <p className="text-center text-zinc-700 text-xs mt-2">
+            Responses generated from internal documents
+          </p>
+        </footer>
+      </div>
     </div>
   );
 }

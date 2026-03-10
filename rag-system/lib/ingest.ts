@@ -9,9 +9,51 @@ import { PineconeStore } from '@langchain/pinecone';
 import { getEmbeddings } from '@/lib/langchain';
 import { getPineconeIndex } from '@/lib/pinecone';
 import { traceable } from 'langsmith/traceable';
-import { writeFile, unlink } from 'fs/promises';
+import { createHash } from 'crypto';
+import { readFile, writeFile, unlink, mkdir } from 'fs/promises';
 import { join } from 'path';
 import { tmpdir } from 'os';
+
+// ---------------------------------------------------------------------------
+// Manifest: tracks { [fileName]: { chunks, hash } } in files/.manifest.json
+// hash = SHA-256 of the file buffer — used to skip unchanged files on sync.
+// chunks = exact count from last ingest — used to delete stale vectors.
+// ---------------------------------------------------------------------------
+type ManifestEntry = { chunks: number; hash: string };
+const MANIFEST_PATH = join(process.cwd(), 'files', '.manifest.json');
+
+export async function readManifest(): Promise<Record<string, ManifestEntry>> {
+  try {
+    const raw = await readFile(MANIFEST_PATH, 'utf-8');
+    return JSON.parse(raw);
+  } catch {
+    return {};
+  }
+}
+
+async function writeManifest(manifest: Record<string, ManifestEntry>): Promise<void> {
+  await mkdir(join(process.cwd(), 'files'), { recursive: true });
+  await writeFile(MANIFEST_PATH, JSON.stringify(manifest, null, 2), 'utf-8');
+}
+
+export function hashBuffer(buffer: Buffer): string {
+  return createHash('sha256').update(buffer).digest('hex');
+}
+
+// ---------------------------------------------------------------------------
+// Deterministic chunk ID  →  <file-slug>-chunk-<index>
+// Same ID on re-ingest = Pinecone upsert (overwrite), not duplicate insert.
+// ---------------------------------------------------------------------------
+function fileSlug(fileName: string): string {
+  return fileName
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
+function chunkId(fileName: string, index: number): string {
+  return `${fileSlug(fileName)}-chunk-${index}`;
+}
 
 // ---------------------------------------------------------------------------
 // YAML front matter extraction
@@ -129,17 +171,42 @@ export async function ingestFile(
       chunks = await charSplitter.splitDocuments(docs);
     }
 
+    const newCount = chunks.length;
+    const ids = chunks.map((_, i) => chunkId(fileName, i));
+
+    const manifest = await readManifest();
+    const previousCount = manifest[fileName]?.chunks ?? 0;
+
     const ingestTraceable = traceable(
       async (documents: any[]) => {
         const index = getPineconeIndex();
         const embeddings = getEmbeddings();
-        await PineconeStore.fromDocuments(documents, embeddings, { pineconeIndex: index });
+
+        // Step 1: delete ALL previously known chunk IDs for this file.
+        // This guarantees no stale vectors remain regardless of how much
+        // the file shrank — no upsert ambiguity, clean slate every time.
+        if (previousCount > 0) {
+          const oldIds = Array.from({ length: previousCount }, (_, i) => chunkId(fileName, i));
+          await index.deleteMany(oldIds).catch(() => {});
+          console.log(`[ingest] Deleted ${previousCount} old chunks for ${fileName}`);
+        }
+
+        // Step 2: insert fresh chunks with deterministic IDs.
+        // fromDocuments ignores the ids option — must use addDocuments directly.
+        const store = await PineconeStore.fromExistingIndex(embeddings, { pineconeIndex: index });
+        await store.addDocuments(documents, { ids });
+
         return documents.length;
       },
       { name: 'ingest-documents', metadata: { fileName } }
     );
 
     const chunksCount = await ingestTraceable(chunks);
+
+    // Update manifest with new chunk count and content hash
+    manifest[fileName] = { chunks: chunksCount, hash: hashBuffer(buffer) };
+    await writeManifest(manifest);
+
     return { file: fileName, status: 'success', chunks: chunksCount };
 
   } catch (err: any) {

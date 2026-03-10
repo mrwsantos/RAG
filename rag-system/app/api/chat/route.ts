@@ -95,7 +95,7 @@ export async function POST(req: NextRequest) {
       },
     });
   } catch (err) {
-    console.error('Erro na API:', err);
+    console.error('API error:', err);
     return Response.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
