@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
     const { message, provider = 'anthropic', history = [] } = await req.json();
 
     if (!message) {
-      return Response.json({ error: 'Mensagem obrigatória' }, { status: 400 });
+      return Response.json({ error: 'Message is required' }, { status: 400 });
     }
 
     // Stream response
@@ -61,7 +61,7 @@ export async function POST(req: NextRequest) {
           // Envia os documentos fonte ao final
           const sources = sourceDocs.map((doc: any) => ({
             content: doc.pageContent?.slice(0, 200) + '...',
-            source: doc.metadata?.source || 'Documento interno',
+            source: doc.metadata?.source || 'Internal document',
             page: doc.metadata?.page,
           }));
 
@@ -96,6 +96,6 @@ export async function POST(req: NextRequest) {
     });
   } catch (err) {
     console.error('Erro na API:', err);
-    return Response.json({ error: 'Erro interno' }, { status: 500 });
+    return Response.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

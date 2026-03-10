@@ -19,13 +19,16 @@ export function getEmbeddings() {
 export function getLLM(provider: 'openai' | 'anthropic' = 'anthropic') {
   if (provider === 'anthropic') {
     return new ChatAnthropic({
+      // model: 'claude-haiku-4-5-20251001',
       model: 'claude-haiku-4-5-20251001',
       apiKey: process.env.ANTHROPIC_API_KEY!,
       streaming: true,
     });
   }
   return new ChatOpenAI({
-    model: 'gpt-4o',
+    // model: 'gpt-oss-120b',
+    // model: 'gpt-4o',
+    model: 'gpt-5-mini-2025-08-07',
     apiKey: process.env.OPENAI_API_KEY!,
     streaming: true,
   });
@@ -39,14 +42,26 @@ export async function getVectorStore() {
 }
 
 // ── Prompt do sistema ─────────────────────────────────────────────────────────
-const SYSTEM_PROMPT = `You are an assistant specialized in the company's documents.
-Always respond clearly and objectively.
-Use ONLY the information provided in the context below to answer.
-If the answer is not in the context, say: "I couldn't find the answer in the documents, sorry."
-At the end, briefly mention which document the information came from.
+// V1 -----------------------------
+// const SYSTEM_PROMPT = `You are an assistant specialized in the company's documents.
+// Always respond clearly and objectively.
+// Use ONLY the information provided in the context below to answer.
+// If the answer is not in the context, say: "I couldn't find the answer in the documents, sorry."
+// At the end, briefly mention which document the information came from.
 
-Document context:
-{context}`;
+// Context:
+// {context}
+
+// Tone of voice: clear, concise, professional, helpful.
+// `;
+const SYSTEM_PROMPT = `You are an assistant specialized in the CLNZ company's documents.
+Always respond clearly and objectively. Should not mention 'based on the provided documents' or similar phrases.
+Use ONLY the information provided in the context below to answer.
+If the answer is not in the context, say: "I couldn't find the answer, sorry."
+
+Context:
+{context}
+`;
 
 // ── Chain RAG principal ────────────────────────────────────────────────────────
 export async function buildRAGChain(provider: 'openai' | 'anthropic' = 'anthropic') {
@@ -54,6 +69,7 @@ export async function buildRAGChain(provider: 'openai' | 'anthropic' = 'anthropi
   const retriever = vectorStore.asRetriever({
     k: 5, // busca os 5 chunks mais relevantes
     searchType: 'similarity',
+    // searchType: 'mmr',
   });
 
   const llm = getLLM(provider);
